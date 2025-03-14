@@ -1,0 +1,15 @@
+services:
+  price_tracker:
+    build:
+      context: ./
+      dockerfile: priceWatcherDockerfile
+    environment:
+      - URL=https://store-eu.gl-inet.com/es/products/eu-beryl-ax-gl-mt3000-pocket-sized-ax3000-wi-fi-6-travel-router-with-2-5g-wan-port
+      - PRODUCT_PRICE_SELECTOR=span.money[data-price]
+      - PRODUCT_NAME_SELECTOR=h2.product-title
+      - TELEGRAM_TOKEN=<TELEGRAM_TOKEN>
+      - TELEGRAM_CHAT_ID=<TELEGRAM_CHAT_ID>
+      - DELAY_SECONDS=3600
+    volumes:
+      - ./data:/app/data
+    restart: on-failure
