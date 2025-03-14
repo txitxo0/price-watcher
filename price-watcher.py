@@ -118,11 +118,11 @@ def check_price_drop(current_price):
     """Chech price drop."""
     df = load_price_history()
     if df.empty:
-        return False  # No podemos comparar si no hay datos previos
+        return False
     if len(df) > 1:
         last_price = df.iloc[-1]["price"]
     else:
-        last_price = current_price  # Usamos el precio actual como referencia
+        last_price = current_price
     if current_price < last_price:
         log_message(f"Price drop! {last_price}€ → {current_price}€")
         return True

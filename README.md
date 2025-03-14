@@ -14,6 +14,15 @@ The docker file is using a Python image and running the script. A cron scheduler
 The docker compose is configure to build the provided dockerfile in a new image.
 The values for the product are example of a personal run
 
+### Environment variables
+The image uses some variables such as:
+- URL: The product item url to track i.e. https://store-eu.gl-inet.com/es/products/eu-beryl-ax-gl-mt3000-pocket-sized-ax3000-wi-fi-6-travel-router-with-2-5g-wan-port
+- PRODUCT_PRICE_SELECTOR: The HTML+CSS selector to get the product price i.e. span.money[data-price]
+- PRODUCT_NAME_SELECTOR: The HTML+CSS selector to get the product name i.e. h2.product-title
+- TELEGRAM_TOKEN: The Telegram bot token
+- TELEGRAM_CHAT_ID: The target telegram chat id to send notifications
+- DELAY_SECONDS: The time between checks i.e. 3600
+
 ## Telegram
 A telegram bot is used to notified the sales! The message includes relevant info and a graphic image to check the history.
 ![Price history graphic example](assets/price_history.png)
