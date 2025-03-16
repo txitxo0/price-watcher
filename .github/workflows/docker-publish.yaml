@@ -1,0 +1,65 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Normalize repository name
+        run: echo "REPO_NAME_LOWER=$(node -e 'console.log("${{ github.repository }}".toLowerCase())')" >> $GITHUB_ENV
+      
+      - name: Get current date
+        run: echo "IMAGE_TAG=$(date +%Y%m%d-%H%M%S)" >> $GITHUB_ENV
+
+      - name: Build Docker image
+        run: | 
+          docker build \
+          -t ghcr.io/$REPO_NAME_LOWER/price-tracker:latest \
+          -t ghcr.io/$REPO_NAME_LOWER/price-tracker:${{ env.IMAGE_TAG }} \
+          -f priceWatcherDockerfile .
+
+      - name: Push Docker image
+        run: |
+          docker push ghcr.io/$REPO_NAME_LOWER/price-tracker:latest 
+          docker push ghcr.io/$REPO_NAME_LOWER/price-tracker:${{ env.IMAGE_TAG }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get current date
+        run: echo "RELEASE_TAG=$(date +%Y%m%d-%H%M%S)" >> $GITHUB_ENV
+
+      - name: Create Git tag
+        run: |
+          git tag $RELEASE_TAG
+          git push origin $RELEASE_TAG
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: "Release ${{ env.RELEASE_TAG }}"
+          body: "🚀 New Docker image published: ghcr.io/${{ github.repository }}/price-tracker:${{ env.RELEASE_TAG }}"
+          draft: false
+          prerelease: false
