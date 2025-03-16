@@ -6,6 +6,7 @@ import requests
 import time
 
 LOG_FILE = "./data/price_watcher.log"
+MAX_LOG_SIZE = 1_048_576  # 1 MB in bytes
 HISTORY_FILE = "./data/prices.csv"
 URL= os.environ.get("URL")
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
@@ -14,6 +15,11 @@ DELAY_SECONDS = int(os.environ.get("DELAY_SECONDS", 60))
 
 def log_message(message):
     """Save message in log file"""
+
+    #Rotate log
+    if os.path.exists(LOG_FILE) and os.path.getsize(LOG_FILE) > MAX_LOG_SIZE:
+        open(LOG_FILE, "w").close()
+
     with open(LOG_FILE, "a", encoding="utf-8") as log:
         log.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
 
