@@ -135,7 +135,33 @@ def check_price_drop(current_price):
     return False
 
 
+def clean_price_history():
+    """Reduce CSV size by averaging prices over a week if unchanged."""
+    df = pd.read_csv(HISTORY_FILE, parse_dates=["date"])
+    
+    # Sort by date
+    df.sort_values(by="date", inplace=True)
+
+    # Add date column
+    df["week"] = df["date"].dt.strftime("%Y-%W")
+
+    # Aggregate by week
+    def aggregate_week(group):
+        if group["price"].nunique() == 1:
+            return pd.DataFrame({
+                "date": [group["date"].min()],
+                "price": [group["price"].mean()]
+            })
+        else:
+            return group
+
+    reduced_df = df.groupby("week", group_keys=False).apply(aggregate_week)
+
+    # Guardar el CSV reducido
+    reduced_df.to_csv(HISTORY_FILE, index=False)
+
 os.makedirs(os.path.dirname(HISTORY_FILE), exist_ok=True)
+iteration = 1
 while True:
     try:
         # Get current price
@@ -178,4 +204,10 @@ while True:
     except Exception as e:
         log_message(f"Error: {str(e)}")
         log_message(f"Waiting {DELAY_SECONDS} seconds to the next iteration...")
+
+    if iteration >= 24:
+        clean_price_history()
+        iteration = 0
+    iteration += 1
+
     time.sleep(DELAY_SECONDS)
