@@ -25,4 +25,4 @@ The image uses some variables such as:
 
 ## Telegram
 A telegram bot is used to notified the sales! The message includes relevant info and a graphic image to check the history.
-![Price history graphic example](assets/price_history.png)
+![Price history graphic example](docs/assets/price_history.png)
