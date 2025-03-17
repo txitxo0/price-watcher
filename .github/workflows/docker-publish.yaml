@@ -7,6 +7,7 @@ on:
     paths-ignore:
       - 'docs/**'
       - README.md
+      - .github/workflows
   workflow_dispatch:
 
 jobs:
@@ -63,6 +64,13 @@ jobs:
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           name: "Release ${{ env.RELEASE_TAG }}"
-          body: "🚀 New Docker image published: ghcr.io/${{ github.repository }}/price-tracker:${{ env.RELEASE_TAG }}"
+          body:  |
+            🚀 **New Docker image published!**
+
+            The latest Docker image has been published and is available [here](https://github.com/${{ github.repository }}/pkgs/container/price-tracker%2Fprice-tracker).
+
+            You can view the release details and tag information on the [release page](https://github.com/${{ github.repository }}/releases/tag/${{ env.RELEASE_TAG }}).
+
+            **Tag**: `${{ env.RELEASE_TAG }}`
           draft: false
           prerelease: false
