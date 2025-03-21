@@ -35,7 +35,7 @@ jobs:
           docker build \
           -t ghcr.io/$REPO_NAME_LOWER/price-tracker:latest \
           -t ghcr.io/$REPO_NAME_LOWER/price-tracker:${{ env.IMAGE_TAG }} \
-          -f priceWatcherDockerfile .
+          -f app/Dockerfile app/
 
       - name: Push Docker image
         run: |

@@ -1,3 +1,4 @@
+import asyncio
 from bs4 import BeautifulSoup
 import matplotlib.pyplot as plt
 import os
@@ -160,9 +161,8 @@ def clean_price_history():
     # Guardar el CSV reducido
     reduced_df.to_csv(HISTORY_FILE, index=False)
 
-os.makedirs(os.path.dirname(HISTORY_FILE), exist_ok=True)
-iteration = 1
-while True:
+
+def trigger_new_price_iteration():
     try:
         # Get current price
         price_selector = os.getenv('PRODUCT_PRICE_SELECTOR', 'span.money[data-price="true"]')
@@ -205,9 +205,17 @@ while True:
         log_message(f"Error: {str(e)}")
         log_message(f"Waiting {DELAY_SECONDS} seconds to the next iteration...")
 
-    if iteration >= 24:
-        clean_price_history()
-        iteration = 0
-    iteration += 1
 
-    time.sleep(DELAY_SECONDS)
+async def watch_prices():
+    os.makedirs(os.path.dirname(HISTORY_FILE), exist_ok=True)
+    iteration = 1
+    while True:
+
+        trigger_new_price_iteration()
+        
+        if iteration >= 24:
+            clean_price_history()
+            iteration = 0
+        iteration += 1
+
+        await asyncio.sleep(DELAY_SECONDS)
