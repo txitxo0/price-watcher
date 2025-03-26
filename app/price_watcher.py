@@ -172,6 +172,7 @@ def trigger_new_price_iteration():
         if current_price:
             # Save current price in the history
             save_price_history(current_price)
+            graph_filename = generate_price_graph()
             
             # Check if price drop
             df = load_price_history() 
@@ -184,7 +185,6 @@ def trigger_new_price_iteration():
                     last_price = current_price
 
                 if check_price_drop(current_price):
-                    graph_filename = generate_price_graph()
                     
                     discount_percentage = ((last_price - current_price) / last_price) * 100
                     message = f"¡Alerta! El precio de {product_name} ha bajado.\n\n" \
