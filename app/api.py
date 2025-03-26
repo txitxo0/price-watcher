@@ -1,5 +1,5 @@
 import csv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from price_watcher import trigger_new_price_iteration
 import os
@@ -8,8 +8,9 @@ import os
 HISTORY_FILE = "./data/prices.csv"
 HISTORY_IMAGE = "./data/price_history.png"
 app = FastAPI()
+router = APIRouter(prefix="/api")
 
-@app.get("/health")
+@router.get("/health")
 def health_check():
     """
     Health check endpoint to verify if the server is running.
@@ -19,7 +20,7 @@ def health_check():
     """
     return {"status": "ok"}
 
-@app.get("/history/text")
+@router.get("/history/text")
 def get_history_text():
     """
     Fetch the historical price data in CSV format and return related statistics.
@@ -51,7 +52,7 @@ def get_history_text():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/history/image")
+@router.get("/history/image")
 def get_history_image():
     """
     Retrieve the price history image (PNG).
@@ -74,7 +75,7 @@ def get_history_image():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/latest-price")
+@router.get("/latest-price")
 def get_latest_price():
     """
     Retrieve the latest recorded price.
@@ -95,7 +96,7 @@ def get_latest_price():
     except (FileNotFoundError, IndexError, ValueError) as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/stats")
+@router.get("/stats")
 def get_stats():
     """
     Calculate and return statistics on the historical prices.
@@ -113,7 +114,7 @@ def get_stats():
     except (FileNotFoundError, ValueError) as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/trigger")
+@router.post("/trigger")
 def trigger_iteration():
     """
     Manually trigger a new price iteration.
@@ -156,5 +157,5 @@ def get_stats_data():
         raise ValueError(f"Error calculating statistics: {str(e)}")
 
 
-
+app.include_router(router)
 # uvicorn api:app --reload
