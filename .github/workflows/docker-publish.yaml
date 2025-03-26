@@ -27,20 +27,21 @@ jobs:
       - name: Normalize repository name
         run: echo "REPO_NAME_LOWER=$(node -e 'console.log("${{ github.repository }}".toLowerCase())')" >> $GITHUB_ENV
       
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Get current date
         run: echo "IMAGE_TAG=$(date +%Y%m%d-%H%M%S)" >> $GITHUB_ENV
 
-      - name: Build Docker image
-        run: | 
-          docker build \
-          -t ghcr.io/$REPO_NAME_LOWER/price-tracker:latest \
-          -t ghcr.io/$REPO_NAME_LOWER/price-tracker:${{ env.IMAGE_TAG }} \
-          -f app/Dockerfile app/
-
-      - name: Push Docker image
+      - name: Build and Push Docker image (Multi-Arch)
         run: |
-          docker push ghcr.io/$REPO_NAME_LOWER/price-tracker:latest 
-          docker push ghcr.io/$REPO_NAME_LOWER/price-tracker:${{ env.IMAGE_TAG }}
+          docker buildx create --use
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            -t ghcr.io/$REPO_NAME_LOWER/price-tracker:latest \
+            -t ghcr.io/$REPO_NAME_LOWER/price-tracker:${{ env.IMAGE_TAG }} \
+            -f app/Dockerfile app/ \
+            --push
 
   release:
     needs: build
