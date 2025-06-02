@@ -1,14 +1,14 @@
-import csv
 from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.responses import FileResponse
-from price_watcher import trigger_new_price_iteration
 import os
+from . import database_manager as db # Use relative import for intra-package module
+from .price_watcher import trigger_new_price_iteration # Use relative import
 
 
-HISTORY_FILE = "./data/prices.csv"
-HISTORY_IMAGE = "./data/price_history.png"
+HISTORY_IMAGE_PATH = "./data/price_history.png"
 app = FastAPI()
 router = APIRouter(prefix="/api")
+
 
 @router.get("/health")
 def health_check():
@@ -36,19 +36,18 @@ def get_history_text():
         HTTPException: If the file is not found, a 404 error is returned.
     """
     try:
-        with open(HISTORY_FILE, 'r') as file:
-            reader = csv.DictReader(file)
-            data = [row for row in reader]
+        df_history = db.load_all_price_history_df()
+        # Convert DataFrame to list of dicts, 'date' column from df is used as 'timestamp'
+        data = df_history.rename(columns={'date': 'timestamp'}).to_dict(orient='records')
         
-        stats = get_stats_data()
+        stats = db.get_price_stats()
 
         return {
             "data": data,
             "metadata": stats
         }
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="File not found")
     except Exception as e:
+        # Log the exception e
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -66,12 +65,10 @@ def get_history_image():
         HTTPException: If the image is not found, a 404 error is returned.
     """
     try:
-        
-        if os.path.exists(HISTORY_IMAGE):
-            return FileResponse(HISTORY_IMAGE, media_type="image/png")
+        if os.path.exists(HISTORY_IMAGE_PATH):
+            return FileResponse(HISTORY_IMAGE_PATH, media_type="image/png")
         else:
-            raise HTTPException(status_code=404, detail="Image not found")
-    
+            raise HTTPException(status_code=404, detail=f"Image not found at {HISTORY_IMAGE_PATH}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -79,21 +76,21 @@ def get_history_image():
 def get_latest_price():
     """
     Retrieve the latest recorded price.
-    
-    Reads the last entry from the historical price CSV file and returns the price value.
 
     Returns:
-        JSON object with 'latest_price' key containing the most recent price.
+        JSON object with 'timestamp' and 'latest_price' keys.
 
     Raises:
-        HTTPException: If there is an error reading the file or parsing the price, a 500 error is returned.
+        HTTPException: If there is an error reading the database or no data is found.
     """
     try:
-        with open(HISTORY_FILE, 'r') as file:
-            last_line = file.readlines()[-1]
-            price = last_line.strip().split(',')[1]
-        return {"latest_price": float(price)}
-    except (FileNotFoundError, IndexError, ValueError) as e:
+        latest_entry = db.get_latest_price_entry()
+        if not latest_entry:
+            raise HTTPException(status_code=404, detail="No price data found in database.")
+        return {"timestamp": latest_entry[0], "latest_price": latest_entry[1]}
+    except HTTPException: # Re-raise HTTP exceptions from db module if any
+        raise
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/stats")
@@ -110,9 +107,11 @@ def get_stats():
         HTTPException: If there is an error reading the file or calculating statistics, a 500 error is returned.
     """
     try:
-        return get_stats_data()
-    except (FileNotFoundError, ValueError) as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return db.get_price_stats()
+    except HTTPException: # Re-raise HTTP exceptions from get_stats_data_from_db
+        raise
+    except Exception as e: # Catch other potential errors
+        raise HTTPException(status_code=500, detail=f"Error calculating stats: {str(e)}")
 
 @router.post("/trigger")
 def trigger_iteration():
@@ -126,35 +125,6 @@ def trigger_iteration():
     """
     trigger_new_price_iteration()
     return {"message": "Manual trigger executed"}
-
-def get_stats_data():
-    """
-    Calculate statistics (total entries, min price, max price, and average price)
-    from the historical price data stored in the CSV file.
-
-    Returns:
-        A dictionary containing statistics: total entries, min price, max price, 
-        and average price rounded to two decimals.
-
-    Raises:
-        ValueError: If there is an issue with reading or processing the file data.
-    """
-    try:
-        with open(HISTORY_FILE, 'r') as file:
-            reader = csv.DictReader(file)
-            data = [row for row in reader]
-
-        # Calculate the stats
-        prices = [float(row['price']) for row in data]  # Assuming 'price' is a column in your CSV
-        stats = {
-            "total_entries": len(prices),
-            "min_price": min(prices),
-            "max_price": max(prices),
-            "average_price": round(sum(prices) / len(prices), 2)
-        }
-        return stats
-    except Exception as e:
-        raise ValueError(f"Error calculating statistics: {str(e)}")
 
 
 app.include_router(router)
