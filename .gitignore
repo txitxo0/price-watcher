@@ -3,3 +3,6 @@ data/
 .token
 
 .venv/
+venv/
+app/.env.ps1
+app/__pycache__/
