@@ -1,21 +1,25 @@
 import asyncio
-from api import app
-from price_watcher import watch_prices
 import uvicorn
 
-async def main():
-    print("Starting price-watcher. API and monitor")
+from app.api.endpoints import app_router
+from app.tasks.price_monitor_task import watch_prices_task
+from app.core.config import settings
+from app.crud import price_crud_handler # Import the handler
+from fastapi import FastAPI
 
-    config = uvicorn.Config(app, host="0.0.0.0", port=8000)
+app = FastAPI(title="Price Watcher API")
+app.include_router(app_router)
+
+async def main():
+    print(f"Starting price-watcher. API and monitor for product: {settings.PRODUCT_URL}")
+    price_crud_handler.init_db() # Initialize database at startup via the handler
+
+    config = uvicorn.Config(app, host=settings.API_HOST, port=settings.API_PORT, loop="asyncio")
     server = uvicorn.Server(config)
 
-    # Start tracker in a parallel process
-    watcher_task = asyncio.create_task(watch_prices())
-
-    # Start API REST over uvicorn
+    watcher_task = asyncio.create_task(watch_prices_task())
     api_task = asyncio.create_task(server.serve())
 
-    # Run both in parallel
     await asyncio.gather(api_task, watcher_task)
 
 if __name__ == "__main__":

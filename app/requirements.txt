@@ -2,5 +2,6 @@ beautifulsoup4
 fastapi
 matplotlib
 pandas
+python-dotenv
 requests
 uvicorn
