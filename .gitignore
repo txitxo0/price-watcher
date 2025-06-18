@@ -5,4 +5,4 @@ data/
 .venv/
 venv/
 app/.env.ps1
-app/__pycache__/
+**/*.pyc

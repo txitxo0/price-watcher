@@ -1,16 +1,15 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 import os
-from . import database_manager as db # Use relative import for intra-package module
-from .price_watcher import trigger_new_price_iteration # Use relative import
+from app.services import price_service, reporting_service
+from app.core.config import settings
+from app.utils.logging_utils import log_message # For logging API errors if needed
+
+# Renamed 'app' to 'app_router' to avoid conflict with FastAPI instance in main.py
+app_router = APIRouter(prefix="/api")
 
 
-HISTORY_IMAGE_PATH = "./data/price_history.png"
-app = FastAPI()
-router = APIRouter(prefix="/api")
-
-
-@router.get("/health")
+@app_router.get("/health")
 def health_check():
     """
     Health check endpoint to verify if the server is running.
@@ -18,9 +17,9 @@ def health_check():
     Returns:
         JSON object with a 'status' key indicating the server status.
     """
-    return {"status": "ok"}
+    return {"status": "ok", "message": "Price Watcher API is running."}
 
-@router.get("/history/text")
+@app_router.get("/history/text")
 def get_history_text():
     """
     Fetch the historical price data in CSV format and return related statistics.
@@ -36,22 +35,22 @@ def get_history_text():
         HTTPException: If the file is not found, a 404 error is returned.
     """
     try:
-        df_history = db.load_all_price_history_df()
+        df_history = price_service.get_all_prices_df()
         # Convert DataFrame to list of dicts, 'date' column from df is used as 'timestamp'
         data = df_history.rename(columns={'date': 'timestamp'}).to_dict(orient='records')
         
-        stats = db.get_price_stats()
+        stats = price_service.get_price_statistics()
 
         return {
             "data": data,
             "metadata": stats
         }
     except Exception as e:
-        # Log the exception e
+        log_message(f"API Error in /history/text: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/history/image")
+@app_router.get("/history/image")
 def get_history_image():
     """
     Retrieve the price history image (PNG).
@@ -65,14 +64,16 @@ def get_history_image():
         HTTPException: If the image is not found, a 404 error is returned.
     """
     try:
-        if os.path.exists(HISTORY_IMAGE_PATH):
-            return FileResponse(HISTORY_IMAGE_PATH, media_type="image/png")
+        image_path = reporting_service.generate_price_history_graph() # Ensures latest graph
+        if image_path and os.path.exists(image_path):
+            return FileResponse(image_path, media_type="image/png")
         else:
-            raise HTTPException(status_code=404, detail=f"Image not found at {HISTORY_IMAGE_PATH}")
+            raise HTTPException(status_code=404, detail=f"Image not found or could not be generated.")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        log_message(f"API Error in /history/image: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving image: {str(e)}")
 
-@router.get("/latest-price")
+@app_router.get("/latest-price")
 def get_latest_price():
     """
     Retrieve the latest recorded price.
@@ -84,16 +85,17 @@ def get_latest_price():
         HTTPException: If there is an error reading the database or no data is found.
     """
     try:
-        latest_entry = db.get_latest_price_entry()
+        latest_entry = price_service.get_latest_price()
         if not latest_entry:
             raise HTTPException(status_code=404, detail="No price data found in database.")
         return {"timestamp": latest_entry[0], "latest_price": latest_entry[1]}
     except HTTPException: # Re-raise HTTP exceptions from db module if any
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        log_message(f"API Error in /latest-price: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving latest price: {str(e)}")
 
-@router.get("/stats")
+@app_router.get("/stats")
 def get_stats():
     """
     Calculate and return statistics on the historical prices.
@@ -107,13 +109,14 @@ def get_stats():
         HTTPException: If there is an error reading the file or calculating statistics, a 500 error is returned.
     """
     try:
-        return db.get_price_stats()
+        return price_service.get_price_statistics()
     except HTTPException: # Re-raise HTTP exceptions from get_stats_data_from_db
         raise
     except Exception as e: # Catch other potential errors
-        raise HTTPException(status_code=500, detail=f"Error calculating stats: {str(e)}")
+        log_message(f"API Error in /stats: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving statistics: {str(e)}")
 
-@router.post("/trigger")
+@app_router.post("/trigger")
 def trigger_iteration():
     """
     Manually trigger a new price iteration.
@@ -123,9 +126,9 @@ def trigger_iteration():
     Returns:
         JSON object with a confirmation message that the manual trigger was executed.
     """
-    trigger_new_price_iteration()
-    return {"message": "Manual trigger executed"}
-
-
-app.include_router(router)
-# uvicorn api:app --reload
+    try:
+        price_service.process_new_price_iteration()
+        return {"message": "Manual price check iteration triggered successfully."}
+    except Exception as e:
+        log_message(f"API Error in /trigger: {e}")
+        raise HTTPException(status_code=500, detail=f"Error triggering iteration: {str(e)}")
