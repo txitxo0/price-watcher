@@ -6,9 +6,9 @@ dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__fil
 load_dotenv(dotenv_path=dotenv_path)
 
 class Settings:
-    PRODUCT_URL: str = os.getenv("URL", "")
-    PRODUCT_PRICE_SELECTOR: str = os.getenv("PRODUCT_PRICE_SELECTOR", "span.money[data-price]")
-    PRODUCT_NAME_SELECTOR: str = os.getenv("PRODUCT_NAME_SELECTOR", "h2.product-title")
+    # PRODUCT_URL: str = os.getenv("URL", "") # Removed
+    # PRODUCT_PRICE_SELECTOR: str = os.getenv("PRODUCT_PRICE_SELECTOR", "span.money[data-price]") # Removed
+    # PRODUCT_NAME_SELECTOR: str = os.getenv("PRODUCT_NAME_SELECTOR", "h2.product-title") # Removed
     TELEGRAM_TOKEN: str | None = os.getenv("TELEGRAM_TOKEN")
     TELEGRAM_CHAT_ID: str | None = os.getenv("TELEGRAM_CHAT_ID")
     DELAY_SECONDS: int = int(os.getenv("DELAY_SECONDS", "60"))
@@ -23,7 +23,8 @@ class Settings:
 
     DB_FILE: str = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "price_watcher.db")
     LOG_FILE: str = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "price_watcher.log")
-    HISTORY_IMAGE_PATH: str = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "price_history.png")
+    HISTORY_IMAGE_DIR: str = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "graphs") # Directory for graphs
+    # HISTORY_IMAGE_PATH: str = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "price_history.png") # Removed, will be dynamic
     MAX_LOG_SIZE: int = 1_048_576  # 1 MB
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000

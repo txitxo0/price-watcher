@@ -1,0 +1,7 @@
+# capp\products_seed.yaml
+- name: "gl.inet beryl ax"
+  url: "https://store-eu.gl-inet.com/es/products/eu-beryl-ax-gl-mt3000-pocket-sized-ax3000-wi-fi-6-travel-router-with-2-5g-wan-port"
+  price_selector: "span.money[data-price]"
+  name_selector: "h2.product-title"
+  slug: "beryl-ax" # Optional, will be generated if omitted
+  is_active: true

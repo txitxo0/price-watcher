@@ -1,13 +1,16 @@
 import requests
 from bs4 import BeautifulSoup
-from app.core.config import settings
+# from app.core.config import settings # No longer needed for product-specific details
 from app.utils.logging_utils import log_message
 
-def get_product_info() -> tuple[str | None, float | None]:
-    """Get price and product name from the configured URL."""
-    log_message(f"Getting info from {settings.PRODUCT_URL}...")
+def get_product_info(url: str, price_selector: str, name_selector: str) -> tuple[str | None, float | None]:
+    """
+    Get price and product name from the given URL using provided CSS selectors.
+    Returns (product_name, price).
+    """
+    log_message(f"Getting info from {url}...")
     try:
-        response = requests.get(settings.PRODUCT_URL, timeout=10)
+        response = requests.get(url, timeout=10, headers={'User-Agent': 'PriceWatcher/1.0'})
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
     except requests.exceptions.RequestException as e:
         log_message(f"Error getting webpage: {e}")
@@ -15,14 +18,14 @@ def get_product_info() -> tuple[str | None, float | None]:
 
     soup = BeautifulSoup(response.text, "html.parser")
     
-    price_element = soup.select(settings.PRODUCT_PRICE_SELECTOR)
+    price_element = soup.select(price_selector)
     price_str = None
     if price_element:
         raw_price = price_element[0].text.strip()
         cleaned_price = ''.join(filter(lambda x: x.isdigit() or x == '.' or x == ',', raw_price))
         price_str = cleaned_price.replace(",", ".")
 
-    product_name_element = soup.select(settings.PRODUCT_NAME_SELECTOR)
+    product_name_element = soup.select(name_selector)
     product_name = product_name_element[0].text.strip() if product_name_element else None
 
     if not product_name:

@@ -3,5 +3,6 @@ fastapi
 matplotlib
 pandas
 python-dotenv
+pyyaml
 requests
 uvicorn

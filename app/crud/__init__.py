@@ -1,11 +1,13 @@
 from app.core.config import settings
-from .base import BasePriceCRUD
+from .base import BasePriceCRUD, BaseProductCRUD
 
 price_crud_handler: BasePriceCRUD
+product_crud_handler: BaseProductCRUD
 
 if settings.DB_TYPE == "sqlite":
-    from .sqlite_crud import SQLitePriceCRUD
+    from .sqlite_crud import SQLitePriceCRUD, SQLiteProductCRUD
     price_crud_handler = SQLitePriceCRUD(db_path=settings.DB_FILE)
+    product_crud_handler = SQLiteProductCRUD(db_path=settings.DB_FILE)
 # elif settings.DB_TYPE == "postgres":
 #     from .postgres_crud import PostgresPriceCRUD # You would create this file
 #     # Example: Construct DSN or pass individual params
@@ -22,4 +24,4 @@ if settings.DB_TYPE == "sqlite":
 else:
     raise ValueError(f"Unsupported DB_TYPE: {settings.DB_TYPE} configured in .env or settings.")
 
-# Now, other modules can import and use `price_crud_handler`
+# Now, other modules can import and use these handlers
